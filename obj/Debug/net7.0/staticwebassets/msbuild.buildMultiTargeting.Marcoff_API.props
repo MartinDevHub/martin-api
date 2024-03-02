@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\Marcoff_API.props" />
+</Project>
