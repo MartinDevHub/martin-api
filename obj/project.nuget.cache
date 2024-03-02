@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "vvoTMjtOvw4YR+yZ38a+l7dST+c+5oHMvzheJYBIlg6WHQiYErl8+7GJ8cb5rmz7XcHBpG9VONed2O3o7mXMkQ==",
+  "dgSpecHash": "zw+S5ATb9qD8WBpoxJXLArlA4azdKVCbZS7UnpAvjD8cVdMdM9SJE+jtxZi1M/Ezz7HJoDZVjjQqsk9/S+fCYA==",
   "success": true,
   "projectFilePath": "C:\\Proyectos\\Marcoff_API\\Marcoff_API\\Booking_API.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\marti\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
+    "C:\\Users\\marti\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.1\\automapper.extensions.microsoft.dependencyinjection.12.0.1.nupkg.sha512",
     "C:\\Users\\marti\\.nuget\\packages\\azure.core\\1.24.0\\azure.core.1.24.0.nupkg.sha512",
     "C:\\Users\\marti\\.nuget\\packages\\azure.identity\\1.6.0\\azure.identity.1.6.0.nupkg.sha512",
     "C:\\Users\\marti\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

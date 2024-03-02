@@ -1,4 +1,5 @@
-﻿using Booking_API.Data;
+﻿using AutoMapper;
+using Booking_API.Data;
 using Marcoff_API.Data;
 using Marcoff_API.Models;
 using Marcoff_API.Models.Dto;
@@ -17,45 +18,48 @@ namespace Marcoff_API.Controllers
     {
         private readonly ILogger<BookingController> _logger;
         private readonly ApplicationDbContext _db;
-        public BookingController(ILogger<BookingController> logger, ApplicationDbContext db)
+        private readonly IMapper _mapper;
+        public BookingController(ILogger<BookingController> logger, ApplicationDbContext db, IMapper mapper)
         {
             _logger = logger;
             _db = db;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<BookingDto>> GetBookings()
+        public async Task<ActionResult<IEnumerable<BookingDto>>> GetBookings()
         {
             _logger.LogInformation("Obtain Bookings");
-            return Ok(_db.Bookings.ToList());
+            IEnumerable<Booking> bookingList = await _db.Bookings.ToListAsync();
+             return Ok(_mapper.Map<IEnumerable<BookingDto>>(bookingList));
         }
 
         [HttpGet("id", Name = "GetBooking") ]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<BookingDto> GetBooking(int id)
+        public async Task<ActionResult<BookingDto>> GetBooking(int id)
           
             {
             if(id == 0) { return BadRequest(); };
 
             //var booking = BookingStore.BookingDtoList.FirstOrDefault(b => b.Id == id);
 
-            var booking = _db.Bookings.FirstOrDefault(b => b.Id == id);
+            var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null) {
                 _logger.LogInformation("Invalid: check Id");
                 return NotFound(); };
 
-            return Ok(booking);
+            return Ok(_mapper.Map<BookingDto>(booking));
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<BookingDto> PostBokings([FromBody] BookingDto booking)
+        public async Task <ActionResult<BookingDto>> PostBokings([FromBody] BookingCreateDto createBookingDto)
         {
             
             //Required validation
@@ -65,48 +69,38 @@ namespace Marcoff_API.Controllers
             }
 
             //Personalized validation: if the name already exists, returns a personalized validation.
-            if(_db.Bookings.FirstOrDefault(b=>b.Name.ToLower() == booking.Name.ToLower()) != null)
+            if(await _db.Bookings.FirstOrDefaultAsync(b=>b.Name.ToLower() == createBookingDto.Name.ToLower()) != null)
             {
                 ModelState.AddModelError("Name Exists", "Name already exists");
                 return BadRequest(ModelState);
             }
 
 
-            if (booking == null )
+            if (createBookingDto == null )
             {
-               return BadRequest();
-            }
-        
-            if (booking.Id > 0) {
-                return StatusCode(StatusCodes.Status500InternalServerError);
+               return BadRequest(createBookingDto);
             }
 
-            Booking modelo = new()
-            {
-                Name = booking.Name,
-                Detail = booking.Detail,
-                Fee = booking.Fee,
-                BedsOcuppied = booking.BedsOcuppied,
-            };
+            Booking modelo = _mapper.Map<Booking>(createBookingDto);
 
-            _db.Bookings.Add(modelo);
-            _db.SaveChanges();
+          await _db.Bookings.AddAsync(modelo);
+          await _db.SaveChangesAsync();
 
-            return CreatedAtRoute("GetBooking", new { id = booking.Id }, booking);
+            return CreatedAtRoute("GetBooking", new { id = modelo.Id }, modelo);
         }
 
         [HttpDelete("id")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult DeleteBooking(int id)
+        public async Task <IActionResult> DeleteBooking(int id)
         {
             if (id == 0)
             {
                 return BadRequest();
             }
 
-            var booking = _db.Bookings.FirstOrDefault(b => b.Id == id);
+            var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null)
             {
@@ -114,42 +108,31 @@ namespace Marcoff_API.Controllers
             }
 
             _db.Bookings.Remove(booking);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpPut("{id:int}")]
-        public IActionResult UpdateBooking(int id, [FromBody] BookingDto bookingDto)
+        public async Task <IActionResult> UpdateBooking(int id, [FromBody] BookingUpdateDto updateBookingDto)
         {
            
 
-            if (bookingDto == null || id!=bookingDto.Id)
+            if (updateBookingDto == null || id!= updateBookingDto.Id)
             {
                 return BadRequest();
             }
 
-            //var booking = BookingStore.BookingDtoList.FirstOrDefault(b => b.Id == id);
+            Booking model = _mapper.Map<Booking>(updateBookingDto);
 
-            //booking.Name = bookingDto.Name;
-
-            Booking modelo = new()
-            {
-                Id = bookingDto.Id,
-                Name = bookingDto.Name,
-                Detail = bookingDto.Detail,
-                Fee = bookingDto.Fee,
-                BedsOcuppied = bookingDto.BedsOcuppied,
-            };
-
-            _db.Bookings.Update(modelo);
-            _db.SaveChanges();
+            _db.Bookings.Update(model);
+            await _db.SaveChangesAsync();
 
             return NoContent();
             
         }
 
         [HttpPatch("{id:int}")]
-        public IActionResult UpdatePartialBooking(int id, JsonPatchDocument<BookingDto> bookingPatchDto)
+        public async Task<IActionResult> UpdatePartialBooking(int id, JsonPatchDocument<BookingUpdateDto> bookingPatchDto)
         {
 
 
@@ -158,17 +141,9 @@ namespace Marcoff_API.Controllers
                 return BadRequest();
             }
 
-            //var booking = BookingStore.BookingDtoList.FirstOrDefault(b => b.Id == id);
-            var booking = _db.Bookings.AsNoTracking().FirstOrDefault(b => b.Id == id);
+            var booking = await _db.Bookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
 
-            BookingDto bookingDto = new()
-            {
-                Id = booking.Id,
-                Name = booking.Name,
-                Detail = booking.Detail,
-                Fee = booking.Fee,
-                BedsOcuppied = booking.BedsOcuppied,
-            };
+            BookingUpdateDto bookingDto = _mapper.Map<BookingUpdateDto>(booking);
 
             if (booking == null)
             {
@@ -182,16 +157,11 @@ namespace Marcoff_API.Controllers
                 return BadRequest(ModelState);
             }
 
-            Booking modelo = new()
-            {
-                Id = bookingDto.Id,
-                Name = bookingDto.Name,
-                Detail = bookingDto.Detail,
-                Fee = bookingDto.Fee,
-                BedsOcuppied = bookingDto.BedsOcuppied,
-            };
+            Booking modelo = _mapper.Map<Booking>(bookingDto);
+
+
             _db.Bookings.Update(modelo);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
             return NoContent();
 
         }
